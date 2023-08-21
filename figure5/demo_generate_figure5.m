@@ -7,9 +7,9 @@
 close all; clear; clc;
 
 %% Set the directory names
-output_directory = 'D:\lowfield_maxgirf\figures5&6\se_spiral_1102_ax_s24_osf1_B0correction1_concomitant_correction1_Lmax50_L8';
-data_directory = 'D:\lowfield\NHLBI\data\20201102_NV_brain';
-B0map_fullpath = 'D:\lowfield_maxgirf\B0map_nlinv_min1.0e-06_axial.mat';
+output_directory = './../';
+data_directory = '/server/sdata/ncan/NHLBI/20201102_NV_brain';
+B0map_fullpath = '/server/home/ncan/GitHub/lowfield_maxgirf/B0map_nlinv_min1.0e-06_axial.mat';
 
 %% Define stuff
 slice_offsets = [-70; -35; 0; 35; 70; 105; -52.5; -17.5; 17.5; 52.5; 87.5] * 1e-3; % [m]
