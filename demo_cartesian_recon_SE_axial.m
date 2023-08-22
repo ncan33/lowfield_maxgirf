@@ -7,15 +7,15 @@
 close all; clear all; clc;
 
 %% Set source directories
-src_directory = 'E:\lowfield_maxgirf';
-ismrmrd_directory = 'D:\ismrmrd\ismrmrd';
+src_directory = '/server/home/ncan/GitHub/lowfield_maxgirf';
+ismrmrd_directory = '/server/home/nlee/ismrmrd';
 
 %% Add source directories to search path
 addpath(genpath(src_directory));
 addpath(genpath(ismrmrd_directory));
 
 %% Define data directory
-ismrmrd_noise_path = '/server/sdata/ncan/NHLBI/20201102_NV_brain/noise/noise_meas_MID00273_FID03656_se_15b130_tra.h5';
+ismrmrd_noise_fullpath = '/server/sdata/ncan/NHLBI/20201102_NV_brain/noise/noise_meas_MID00273_FID03656_se_15b130_tra.h5';
 ismrmrd_data_fullpath  = '/server/sdata/ncan/NHLBI/20201102_NV_brain/h5/meas_MID00273_FID03656_se_15b130_tra.h5';
 siemens_dat_fullpath   = '/server/sdata/ncan/NHLBI/20201102_NV_brain/meas_MID00273_FID03656_se_15b130_tra.dat';
 
