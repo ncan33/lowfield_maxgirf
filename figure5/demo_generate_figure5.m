@@ -52,10 +52,11 @@ maxgirf_lowrank_filename         = sprintf('maxgirf_lowrank_slice%d.mat', slice_
 %--------------------------------------------------------------------------
 % Load .mat files
 %--------------------------------------------------------------------------
-load(fullfile(output_directory, nufft_filename));
-load(fullfile(output_directory, king_filename));
-load(fullfile(output_directory, king_with_B0_correction_filename));
-load(fullfile(output_directory, maxgirf_lowrank_filename));
+%load(fullfile(output_directory, nufft_filename));
+%load(fullfile(output_directory, king_filename));
+%load(fullfile(output_directory, king_with_B0_correction_filename));
+%load(fullfile(output_directory, maxgirf_lowrank_filename));
+load(fullfile(output_directory, ''));
 [N1,N2] = size(im_nufft);
 
 im_cartesian               = reorient(im_cartesian);

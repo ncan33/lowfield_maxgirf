@@ -15,9 +15,9 @@ addpath(genpath(src_directory));
 addpath(genpath(ismrmrd_directory));
 
 %% Define data directory
-ismrmrd_noise_fullpath = 'D:\lowfield\NHLBI\data\20201102_NV_brain\noise\noise_meas_MID00273_FID03656_se_15b130_tra.h5';
-ismrmrd_data_fullpath  = 'D:\lowfield\NHLBI\data\20201102_NV_brain\h5\meas_MID00273_FID03656_se_15b130_tra.h5';
-siemens_dat_fullpath   = 'D:\lowfield\NHLBI\data\20201102_NV_brain\meas_MID00273_FID03656_se_15b130_tra.dat';
+ismrmrd_noise_path = '/server/sdata/ncan/NHLBI/20201102_NV_brain/noise/noise_meas_MID00273_FID03656_se_15b130_tra.h5';
+ismrmrd_data_fullpath  = '/server/sdata/ncan/NHLBI/20201102_NV_brain/h5/meas_MID00273_FID03656_se_15b130_tra.h5';
+siemens_dat_fullpath   = '/server/sdata/ncan/NHLBI/20201102_NV_brain/meas_MID00273_FID03656_se_15b130_tra.dat';
 
 % "phase_sign" and "read_sign" can be determined only from Siemens raw data 
 % format now until the ISMRMRD format includes these as part of its header
