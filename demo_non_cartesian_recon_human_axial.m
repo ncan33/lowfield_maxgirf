@@ -65,21 +65,21 @@ save(sprintf('%s_maxgirf', output_filename), 'im_maxgirf', 'header_maxgirf', 'r_
 end
 
 if 1
-%% Perform CG-based MaxGIRF reconstruction (single-GPU)
-[im_maxgirf_gpu, header_maxgirf, r_dcs_maxgirf, output_maxgirf] = siemens_maxgirf_cg_recon_single_gpu(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, B0map_nlinv, user_opts);
-save(sprintf('%s_maxgirf_single_gpu_supp%d_iter%d', output_filename, user_opts.support_constraint, user_opts.max_iterations), 'im_maxgirf_gpu', 'header_maxgirf', 'r_dcs_maxgirf', 'output_maxgirf', 'user_opts', '-v7.3');
-
 %% Perform NUFFT reconstruction (single-GPU)
 [im_nufft_gpu, header_nufft, r_dcs_nufft] = siemens_gridding_recon_gpu(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, user_opts);
 save(sprintf('%s_nufft_gpu', output_filename), 'im_nufft_gpu', 'header_nufft', 'r_dcs_nufft', 'user_opts', '-v7.3');
+
+%% Perform CG-based MaxGIRF reconstruction (single-GPU)
+[im_maxgirf_gpu, header_maxgirf, r_dcs_maxgirf, output_maxgirf] = siemens_maxgirf_cg_recon_single_gpu(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, B0map_nlinv, user_opts);
+save(sprintf('%s_maxgirf_single_gpu_supp%d_iter%d', output_filename, user_opts.support_constraint, user_opts.max_iterations), 'im_maxgirf_gpu', 'header_maxgirf', 'r_dcs_maxgirf', 'output_maxgirf', 'user_opts', '-v7.3');
 
 %% Perform King's method reconstruction
 [im_king, header_king, r_dcs_king] = siemens_king_method_recon(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, user_opts);
 save(sprintf('%s_king', output_filename), 'im_king', 'header_king', 'r_dcs_king', 'user_opts', '-v7.3');
 
 %% Perform SENSE reconstruction (single-GPU)
-[im_sense_gpu, header_sense, r_dcs_sense, output_sense] = siemens_sense_recon_gpu(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, user_opts);
-save(sprintf('%s_sense_gpu', output_filename), 'im_sense_gpu', 'header_sense', 'r_dcs_sense', 'output_sense', 'user_opts', '-v7.3');
+%[im_sense_gpu, header_sense, r_dcs_sense, output_sense] = siemens_sense_recon_gpu(ismrmrd_noise_path, ismrmrd_data_path, siemens_dat_path, user_opts);
+%save(sprintf('%s_sense_gpu', output_filename), 'im_sense_gpu', 'header_sense', 'r_dcs_sense', 'output_sense', 'user_opts', '-v7.3');
 end
 
 if 0
