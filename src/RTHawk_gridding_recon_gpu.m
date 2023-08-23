@@ -1,19 +1,85 @@
 function [im_nufft_multislice,header,r_dcs_multislice] = RTHawk_gridding_recon_gpu(data_path, user_opts)
 % Written by Nejat Can
 % Email: ncan@usc.edu
-% Started: 08/21/2023n
+% Started: 08/21/2023
 
 %% Define constants
 gamma = 4257.59 * (1e4 * 2 * pi); % gyromagnetic ratio for 1H [rad/sec/T]
 
-%% Read RTHawk .dat file
-load(data_path, 'kspace', 'kspace_info')
+%% Define imaging parameters
+%dt  = 2 * 1e-6;   % dwell time [sec]
+B0  = 0.55;       % main magnetic field strength [T]
+TE  = 2.967 * 1e-3; % echo time [sec]
 
-whos
+%% Set reconstruction parameters
+tol     = 1e-5; % LSQR tolerance
+maxiter = 30;   % maximum number of iterations
+Nl      = 19;   % number of spatial basis functions
+Lmax    = 30;   % maximum rank of the SVD approximation of a higher-order encoding matrix
+L       = 5;    % rank of the SVD approximation of a higher-order encoding matrix
+os      = 5;    % oversampling parameter for randomized SVD
+
+%% Read RTHawk .dat file
+load(data_path, 'kspace', 'kspace_info', 'raw_dir')
 
 %[data, header, kspace] = loadRthDataCombinedRawandTraj(data_path);
 %nFrames = size(header, 2); % Number of time frames exported by RthReconImageExport
 %frame = 10; % For this example, we just reconstruct the first time frame
+
+%% Get imaging parameters
+% (7654 samples * 16 channels) x (14 interleaves * 5 slices)
+Nk = kspace_info.extent(1);           % number of k-space samples
+Nc = kspace_info.extent(2);           % number of channels
+Ni = kspace_info.kspace.acquisitions; % number of interleaves
+narm_frame = user_opts.narm_frame;    % number of arms per frame
+
+%--------------------------------------------------------------------------
+% Geometry parameters
+%--------------------------------------------------------------------------
+FieldOfViewX   = kspace_info.('user_FieldOfViewX'); % [mm]
+FieldOfViewY   = kspace_info.('user_FieldOfViewY'); % [mm]
+FieldOfViewZ   = kspace_info.('user_FieldOfViewZ'); % [mm]
+QuaternionW    = kspace_info.('user_QuaternionW');
+QuaternionX    = kspace_info.('user_QuaternionX');
+QuaternionY    = kspace_info.('user_QuaternionY');
+QuaternionZ    = kspace_info.('user_QuaternionZ');
+ResolutionX    = kspace_info.('user_ResolutionX');    % [mm]
+ResolutionY    = kspace_info.('user_ResolutionY');    % [mm]
+SliceThickness = kspace_info.('user_SliceThickness'); % [mm]
+TranslationX   = kspace_info.('user_TranslationX');   % [mm]
+TranslationY   = kspace_info.('user_TranslationY');   % [mm]
+TranslationZ   = kspace_info.('user_TranslationZ');   % [mm]
+
+%--------------------------------------------------------------------------
+% Define reconstruction parameters
+%--------------------------------------------------------------------------
+%N1 = FieldOfViewX / ResolutionX;
+%N2 = FieldOfViewY / ResolutionY;
+N1 = user_opts.N1;
+N2 = user_opts.N2;
+N3 = 1;
+N = N1 * N2 * N3;
+
+%--------------------------------------------------------------------------
+% Calculate the dwell time [sec]
+%--------------------------------------------------------------------------
+T = kspace_info.user_readoutTime * 10^-3; % readout duration [sec]
+dt = T / Nk;                              % dwell time [sec]
+
+%% Prepare k-space data (Nk x Ni x Nc x Ns)
+[kspace_echo_1, kspace_echo_2, kx_echo_1, kx_echo_2, ky_echo_1, ...
+    ky_echo_2] = dual_te_split_kspace(kspace, kspace_info, user_opts);
+
+%kspace = complex(data(1,:,:), data(2,:,:));
+%kspace = reshape(kspace, [Nk Nc Ni Ns]);
+%kspace = permute(kspace, [1 3 2 4]);
+
+disp(size(kspace_echo_1))
+disp(size(kx_echo_1))
+
+%Ns = narm_frame * 344930433409; % number of frames
+
+
 
 im_nufft_multislice = 0;
 r_dcs_multislice = 0;
