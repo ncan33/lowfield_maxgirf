@@ -7,9 +7,18 @@ function [im_nufft_multislice,header,r_dcs_multislice] = RTHawk_gridding_recon_g
 gamma = 4257.59 * (1e4 * 2 * pi); % gyromagnetic ratio for 1H [rad/sec/T]
 
 %% Read RTHawk .dat file
-[data, header, kspace] = loadRthDataCombinedRawandTraj(data_path);
-nFrames = size(header, 2); % Number of time frames exported by RthReconImageExport
-frame = 10; % For this example, we just reconstruct the first time frame
+all_dat = dir(path); file_index = 1; 
+file_name = fullfile(all_dat(file_index).folder, all_dat(file_index).name);
+load(file_name)
+
+disp(all_dat)
+disp(file_index)
+disp(file_name)
+whos
+
+%[data, header, kspace] = loadRthDataCombinedRawandTraj(data_path);
+%nFrames = size(header, 2); % Number of time frames exported by RthReconImageExport
+%frame = 10; % For this example, we just reconstruct the first time frame
 
 im_nufft_multislice = 0;
 r_dcs_multislice = 0;
