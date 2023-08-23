@@ -7,9 +7,7 @@ function [im_nufft_multislice,header,r_dcs_multislice] = RTHawk_gridding_recon_g
 gamma = 4257.59 * (1e4 * 2 * pi); % gyromagnetic ratio for 1H [rad/sec/T]
 
 %% Read RTHawk .dat file
-all_dat = dir(data_path); file_index = 1; 
-file_name = fullfile(all_dat(file_index).folder, all_dat(file_index).name);
-load(file_name)
+load(data_path, 'kspace', 'kspace_info')
 
 disp(all_dat)
 disp(file_index)
@@ -22,6 +20,7 @@ whos
 
 im_nufft_multislice = 0;
 r_dcs_multislice = 0;
+header = 0;
 return
 
 %{
