@@ -1,5 +1,5 @@
 function [kspace_echo_1, kspace_echo_2, kx_echo_1, kx_echo_2, ky_echo_1, ...
-    ky_echo_2] = dual_te_split_kspace(kspace, kspace_info, user_opts)
+    ky_echo_2, nframes] = dual_te_split_kspace(kspace, kspace_info, user_opts)
     % splits dual TE kspace data
     Nk = kspace_info.extent(1);           % number of k-space samples
     Nc = kspace_info.extent(2);           % number of channels

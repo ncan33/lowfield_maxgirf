@@ -31,7 +31,7 @@ load(data_path, 'kspace', 'kspace_info', 'raw_dir')
 Nk = kspace_info.extent(1);           % number of k-space samples
 Nc = kspace_info.extent(2);           % number of channels
 Ni = kspace_info.kspace.acquisitions; % number of interleaves
-narm_frame = user_opts.narm_frame;    % number of arms per frame
+Na = user_opts.narm_frame;            % number of arms per frame
 
 %--------------------------------------------------------------------------
 % Geometry parameters
@@ -66,15 +66,24 @@ N = N1 * N2 * N3;
 T = kspace_info.user_readoutTime * 10^-3; % readout duration [sec]
 dt = T / Nk;                              % dwell time [sec]
 
-%% Prepare k-space data (Nk x Ni x Nc x Ns)
+%% Prepare k-space data (Nk x Na x Nc x Nf)
 [kspace_echo_1, kspace_echo_2, kx_echo_1, kx_echo_2, ky_echo_1, ...
-    ky_echo_2] = dual_te_split_kspace(kspace, kspace_info, user_opts);
+    ky_echo_2, nframes] = dual_te_split_kspace(kspace, kspace_info, user_opts);
 
-%kspace = complex(data(1,:,:), data(2,:,:));
-%kspace = reshape(kspace, [Nk Nc Ni Ns]);
-%kspace = permute(kspace, [1 3 2 4]);
+%--------------------------------------------------------------------------
+% Declare Nf parameter
+%--------------------------------------------------------------------------
+Nf = nframes; % Number of frames in dynamic data
+
+kspace = permute(kspace_echo_1, [1 2 4 3]); % permute to 
+
+
+if size(kspace, 1) ~= Nk | size(kspace, 2) ~= Na | size(kspace, 3) ~= Nc | size(kspace, 4) ~= Nf
+    error('Your kspace data was reshaped incorrectly.')
+end
 
 disp(size(kspace_echo_1))
+disp(size(kspace))
 disp(size(kx_echo_1))
 
 %Ns = narm_frame * 344930433409; % number of frames
