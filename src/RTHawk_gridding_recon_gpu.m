@@ -9,9 +9,6 @@ gamma = 4257.59 * (1e4 * 2 * pi); % gyromagnetic ratio for 1H [rad/sec/T]
 %% Read RTHawk .dat file
 load(data_path, 'kspace', 'kspace_info')
 
-disp(all_dat)
-disp(file_index)
-disp(file_name)
 whos
 
 %[data, header, kspace] = loadRthDataCombinedRawandTraj(data_path);
