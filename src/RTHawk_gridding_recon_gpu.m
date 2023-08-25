@@ -21,10 +21,7 @@ os      = 5;    % oversampling parameter for randomized SVD
 
 %% Read RTHawk .dat file
 load(data_path, 'kspace', 'kspace_info', 'raw_dir')
-
-%[data, header, kspace] = loadRthDataCombinedRawandTraj(data_path);
-%nFrames = size(header, 2); % Number of time frames exported by RthReconImageExport
-%frame = 10; % For this example, we just reconstruct the first time frame
+patient_position = 'HFS'; % head first supine
 
 %% Get imaging parameters
 % (7654 samples * 16 channels) x (14 interleaves * 5 slices)
@@ -32,6 +29,7 @@ Nk = kspace_info.extent(1);           % number of k-space samples
 Nc = kspace_info.extent(2);           % number of channels
 Ni = kspace_info.kspace.acquisitions; % number of interleaves
 Na = user_opts.narm_frame;            % number of arms per frame
+M = kspace_info.viewOrder;            % number of spiral arms acquired during scan
 
 %--------------------------------------------------------------------------
 % Geometry parameters
@@ -70,6 +68,8 @@ dt = T / Nk;                              % dwell time [sec]
 [kspace_echo_1, kspace_echo_2, kx_echo_1, kx_echo_2, ky_echo_1, ...
     ky_echo_2, nframes] = dual_te_split_kspace(kspace, kspace_info, user_opts);
 
+clear kspace_echo_2 kx_echo_2 ky_echo_2 % single echo for now
+
 %--------------------------------------------------------------------------
 % Declare Nf parameter
 %--------------------------------------------------------------------------
@@ -100,14 +100,30 @@ krmax = 2 * pi / spatial_resolution / 2;
 % traj: 1 x Nk*Ni*3 x M in [-0.5,0.5]
 % [kr(1), kc(1), dcf(1), kr(2), kc(2), dcf(2), ...]
 %--------------------------------------------------------------------------
-disp(['Nk*Ni*3 = ', num2str(Nk*Ni*3)])
-%disp(['M = ', num2str(M)])
-disp(['M = Nf*Ni = ', num2str(Nf*Ni)])
 
-%k_rcs_nominal = zeros(Nk, 3, Ni, 'double');
-%k_rcs_nominal(:,1,:) = reshape(traj(:,1:3:end,1).' * (2 * krmax), [Nk 1 Ni]); % [rad/m]
-%k_rcs_nominal(:,2,:) = reshape(traj(:,2:3:end,1).' * (2 * krmax), [Nk 1 Ni]); % [rad/m]
+k_rcs_nominal = zeros(Nk, 3, Ni, 'single');
+k_rcs_nominal(:,1,:) = reshape(kx_echo_1 * (2 * krmax), [Nk 1 Ni]); % [rad/m]
+k_rcs_nominal(:,2,:) = reshape(ky_echo_1 * (2 * krmax), [Nk 1 Ni]); % [rad/m]
 
+%% Calculate a transformation matrix from the RCS to the PCS [R,C,S] <=> [SAG,COR,TRA]
+%--------------------------------------------------------------------------
+% Convert the quaternion to a rotation matrix representation
+% file:///E:/scanning_hawk/doc/RthLibs_doc_html/class_rth_quaternion.html
+% Calculate a rotation matrix from RCS to PCS
+%--------------------------------------------------------------------------
+R_rcs2pcs = zeros(3, 3, 'double');
+R_rcs2pcs(1) = 1 - (2 * QuaternionY^2 + 2 * QuaternionZ^2);
+R_rcs2pcs(2) = 2 * QuaternionX * QuaternionY + 2 * QuaternionZ * QuaternionW;
+R_rcs2pcs(3) = 2 * QuaternionX * QuaternionZ - 2 * QuaternionY * QuaternionW;
+R_rcs2pcs(4) = 2 * QuaternionX * QuaternionY - 2 * QuaternionZ * QuaternionW;
+R_rcs2pcs(5) = 1 - (2 * QuaternionX^2 + 2 * QuaternionZ^2);
+R_rcs2pcs(6) = 2 * QuaternionY * QuaternionZ + 2 * QuaternionX * QuaternionW;
+R_rcs2pcs(7) = 2 * QuaternionX * QuaternionZ + 2 * QuaternionY * QuaternionW;
+R_rcs2pcs(8) = 2 * QuaternionY * QuaternionZ - 2 * QuaternionX * QuaternionW;
+R_rcs2pcs(9) = 1 - (2 * QuaternionX^2 + 2 * QuaternionY^2);
+
+%% Calculate a scaling matrix [m]
+scaling_matrix = [ResolutionX 0 0; 0 ResolutionY 0; 0 0 SliceThickness] * 1e-3; % [mm] * [m/1e3mm] => [m]
 
 im_nufft_multislice = 0;
 r_dcs_multislice = 0;
