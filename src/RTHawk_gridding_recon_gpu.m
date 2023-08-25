@@ -193,22 +193,6 @@ gpuDevice(idx(1));
 %--------------------------------------------------------------------------
 % Transfer arrays from the CPU to the GPU 
 %--------------------------------------------------------------------------
-st_device = cell(Ni,1);
-for i = 1:Ni
-    st_device{i}.n_shift = st{i}.n_shift;
-    st_device{i}.alpha   = {gpuArray(st{i}.alpha{1}), gpuArray(st{i}.alpha{2})};
-    st_device{i}.beta    = {gpuArray(st{i}.beta{1}), gpuArray(st{i}.beta{2})};
-    st_device{i}.ktype   = st{i}.ktype;
-    st_device{i}.tol     = st{i}.tol;
-    st_device{i}.Jd      = st{i}.Jd;
-    st_device{i}.Nd      = st{i}.Nd;
-    st_device{i}.Kd      = st{i}.Kd;
-    st_device{i}.M       = st{i}.M;
-    st_device{i}.om      = gpuArray(st{i}.om);
-    st_device{i}.sn      = gpuArray(st{i}.sn);
-    st_device{i}.p       = gpuArray(st{i}.p);
-end
-
 dcf_device = gpuArray(dcf);
 
 %% Perform reconstruction per slice
