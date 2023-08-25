@@ -102,11 +102,8 @@ krmax = 2 * pi / spatial_resolution / 2;
 %--------------------------------------------------------------------------
 
 k_rcs_nominal = zeros(Nk, 3, Ni, 'single');
-disp(['Nk = ', num2str(Nk)])
-disp(['Nk = ', num2str(Ni)])
-disp(['Nk = ', num2str(size(kx_echo_1))])
-k_rcs_nominal(:,1,:) = reshape(kx_echo_1 * (2 * krmax), [Nk 1 Ni]); % [rad/m]
-k_rcs_nominal(:,2,:) = reshape(ky_echo_1 * (2 * krmax), [Nk 1 Ni]); % [rad/m]
+k_rcs_nominal(:,1,:) = reshape(kx_echo_1(:,:, end) * (2 * krmax), [Nk 1 Ni]); % [rad/m]
+k_rcs_nominal(:,2,:) = reshape(ky_echo_1(:,:, end) * (2 * krmax), [Nk 1 Ni]); % [rad/m]
 
 %% Calculate a transformation matrix from the RCS to the PCS [R,C,S] <=> [SAG,COR,TRA]
 %--------------------------------------------------------------------------
