@@ -171,7 +171,6 @@ Nd = [N1 N2]; % matrix size
 Jd = [6 6];   % kernel size
 Kd = Nd * 2;  % oversampled matrix size
 nufft_st = nufft_init(om, Nd, Jd, Kd, Nd/2, 'minmax:kb');
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %% Calculate a density compensation function (Nk x Ni)
 tstart = tic; fprintf('Calculating a density compensation function using sdc3_MAT.c... ');
@@ -183,7 +182,6 @@ verbose = 0;  % 1:verbose 0:quiet
 osf     = 2;  % the grid oversample factor
 DCF = sdc3_MAT(coords, numIter, effMtx, verbose, osf);
 dcf = DCF / max(DCF(:));
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
 %% Transfer arrays from the CPU to the GPU
 %--------------------------------------------------------------------------
@@ -270,7 +268,6 @@ for s = 1:Ns
     %----------------------------------------------------------------------
     cal_im = fft2c(zpad(cal_data, [N1 N2 Nc]));
     csm = ismrm_estimate_csm_walsh(cal_im);
-    fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
 
     %% Perform optimal coil combination
     img_nufft(:,:,s) = sum(cimg_nufft .* conj(csm), 3);
