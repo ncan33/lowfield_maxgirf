@@ -230,6 +230,9 @@ for s = 1:Nf
     cimg_nufft = complex(zeros(N1, N2, Nc, 'double'));
     for c = 1:Nc
         tstart = tic; fprintf('(%2d/%2d) NUFFT reconstruction (c=%2d/%2d)... ', s, Nf, c, Nc);
+        disp(class(kspace))
+        disp(class(dcf))
+        disp(class(nufft_st))
         cimg_nufft(:,:,c) = nufft_adj(reshape(double(kspace(:,:,c,s)) .* double(dcf), [Nk*Ni 1]), double(nufft_st)) / sqrt(prod(Nd));
         fprintf('done! (%6.4f sec)\n', toc(tstart));
     end
