@@ -196,11 +196,11 @@ gpuDevice(idx(1));
 dcf_device = gpuArray(dcf);
 
 %% Perform reconstruction per slice
-img_nufft   = complex(zeros(N1, N2, Ns, 'double'));
-r_dcs = zeros(N, 3, Ns, 'double');
-fc1 = zeros(N1, N2, Ns, 'double');
+img_nufft   = complex(zeros(N1, N2, Nf, 'double'));
+r_dcs = zeros(N, 3, Nf, 'double');
+fc1 = zeros(N1, N2, Nf, 'double');
 
-for s = 1:Ns
+for s = 1:Nf
     %% Get a slice offset in the PCS [m]
     if strcmp(image_ori, 'coronal')
         pcs_offset = [TranslationX; TranslationY + SliceThickness * (s - 1); TranslationZ] * 1e-3; % [mm] * [m/1e3mm] => [m]
@@ -228,13 +228,13 @@ for s = 1:Ns
     %% Perform NUFFT reconstruction
     cimg_nufft = complex(zeros(N1, N2, Nc, 'double'));
     for c = 1:Nc
-        tstart = tic; fprintf('(%2d/%2d) NUFFT reconstruction (c=%2d/%2d)... ', s, Ns, c, Nc);
+        tstart = tic; fprintf('(%2d/%2d) NUFFT reconstruction (c=%2d/%2d)... ', s, Nf, c, Nc);
         cimg_nufft(:,:,c) = nufft_adj(reshape(kspace(:,:,c,s) .* dcf, [Nk*Ni 1]), nufft_st) / sqrt(prod(Nd));
         fprintf('done! (%6.4f sec)\n', toc(tstart));
     end
 
     %% Estimate coil sensitivity maps
-    tstart = tic; fprintf('(%2d/%2d) Estimating coil sensitivity maps with Walsh method... ', s, Ns);
+    tstart = tic; fprintf('(%2d/%2d) Estimating coil sensitivity maps with Walsh method... ', s, Nf);
     %----------------------------------------------------------------------
     % IFFT to k-space (k-space <=> image-space)
     %----------------------------------------------------------------------
