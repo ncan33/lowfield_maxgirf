@@ -75,19 +75,38 @@ dt = T / Nk;                              % dwell time [sec]
 %--------------------------------------------------------------------------
 Nf = nframes; % Number of frames in dynamic data
 
+%--------------------------------------------------------------------------
+% Permute to achieve (Nk x Na x Nc x Nf)
+%--------------------------------------------------------------------------
 kspace = permute(kspace_echo_1, [1 2 4 3]); % permute to 
 
-
-if size(kspace, 1) ~= Nk | size(kspace, 2) ~= Na | size(kspace, 3) ~= Nc | size(kspace, 4) ~= Nf
+if size(kspace, 1) ~= Nk || size(kspace, 2) ~= Na || size(kspace, 3) ~= Nc || size(kspace, 4) ~= Nf
     error('Your kspace data was reshaped incorrectly.')
 end
 
-disp(size(kspace_echo_1))
-disp(size(kspace))
-disp(size(kx_echo_1))
+%% Calculate the maximum k-space value [rad/m]
+%--------------------------------------------------------------------------
+% Calculate the spatial resolution [m]
+%--------------------------------------------------------------------------
+spatial_resolution = kspace_info.kspace.spatialResolution(1) * 1e-3;
 
-%Ns = narm_frame * 344930433409; % number of frames
+%--------------------------------------------------------------------------
+% Calculate the maximum k-space value [rad/m]
+%--------------------------------------------------------------------------
+krmax = 2 * pi / spatial_resolution / 2;
 
+%% Get nominal k-space trajectories in the RCS [rad/m] [R,C,S]
+%--------------------------------------------------------------------------
+% traj: 1 x Nk*Ni*3 x M in [-0.5,0.5]
+% [kr(1), kc(1), dcf(1), kr(2), kc(2), dcf(2), ...]
+%--------------------------------------------------------------------------
+disp(['Nk*Ni*3 = ', num2str(Nk*Ni*3)])
+%disp(['M = ', num2str(M)])
+disp(['M = Nf*Ni = ', num2str(Nf*Ni)])
+
+%k_rcs_nominal = zeros(Nk, 3, Ni, 'double');
+%k_rcs_nominal(:,1,:) = reshape(traj(:,1:3:end,1).' * (2 * krmax), [Nk 1 Ni]); % [rad/m]
+%k_rcs_nominal(:,2,:) = reshape(traj(:,2:3:end,1).' * (2 * krmax), [Nk 1 Ni]); % [rad/m]
 
 
 im_nufft_multislice = 0;
