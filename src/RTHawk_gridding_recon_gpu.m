@@ -22,6 +22,7 @@ os      = 5;    % oversampling parameter for randomized SVD
 %% Read RTHawk .dat file
 load(data_path, 'kspace', 'kspace_info', 'raw_dir')
 patient_position = 'HFS'; % head first supine
+image_ori = 'coronal';
 
 %% Get imaging parameters
 % (7654 samples * 16 channels) x (14 interleaves * 5 slices)
