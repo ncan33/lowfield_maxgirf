@@ -1,4 +1,4 @@
-function [im_nufft_multislice,header,r_dcs_multislice] = RTHawk_gridding_recon_gpu(data_path, user_opts)
+function [im_nufft_multiframe, header, r_dcs_multiframe] = RTHawk_gridding_recon_gpu(data_path, user_opts)
 % Written by Nejat Can
 % Email: ncan@usc.edu
 % Started: 08/21/2023
@@ -230,7 +230,6 @@ for s = 1:Nf
     cimg_nufft = complex(zeros(N1, N2, Nc, 'double'));
     for c = 1:Nc
         tstart = tic; fprintf('(%2d/%2d) NUFFT reconstruction (c=%2d/%2d)... ', s, Nf, c, Nc);
-
         cimg_nufft(:,:,c) = nufft_adj(reshape(double(kspace(:,:,c,s)) .* double(dcf), [Nk*Ni 1]), nufft_st) / sqrt(prod(Nd));
         fprintf('done! (%6.4f sec)\n', toc(tstart));
     end
@@ -258,4 +257,9 @@ for s = 1:Nf
     %% Perform optimal coil combination
     img_nufft(:,:,s) = sum(cimg_nufft .* conj(csm), 3);
 end
+
+im_nufft_multiframe = img_nufft;
+r_dcs_multiframe = r_dcs;
+header = kspace_info;
+
 end
