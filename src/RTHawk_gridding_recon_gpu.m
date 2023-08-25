@@ -102,7 +102,7 @@ krmax = 2 * pi / spatial_resolution / 2;
 % [kr(1), kc(1), dcf(1), kr(2), kc(2), dcf(2), ...]
 %--------------------------------------------------------------------------
 
-k_rcs_nominal = zeros(Nk, 3, Ni, 'single');
+k_rcs_nominal = zeros(Nk, 3, Ni, 'double');
 k_rcs_nominal(:,1,:) = reshape(kx_echo_1(:,:, end) * (2 * krmax), [Nk 1 Ni]); % [rad/m]
 k_rcs_nominal(:,2,:) = reshape(ky_echo_1(:,:, end) * (2 * krmax), [Nk 1 Ni]); % [rad/m]
 
