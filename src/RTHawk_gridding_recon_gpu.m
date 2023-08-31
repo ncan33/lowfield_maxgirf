@@ -7,7 +7,6 @@ function [im_nufft_multiframe, header, r_dcs_multiframe] = RTHawk_gridding_recon
 gamma = 4257.59 * (1e4 * 2 * pi); % gyromagnetic ratio for 1H [rad/sec/T]
 
 %% Define imaging parameters
-%dt  = 2 * 1e-6;   % dwell time [sec]
 B0  = 0.55;       % main magnetic field strength [T]
 TE  = 2.967 * 1e-3; % echo time [sec]
 
