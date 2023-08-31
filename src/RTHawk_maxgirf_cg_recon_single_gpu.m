@@ -360,8 +360,6 @@ for s = 1:Nf
     img_maxgirf(:,:,s) = gather(im_maxgirf_device);
 end
     
-end
-    
 im_maxgirf_multiframe = NaN;
 header = kspace_info;
 r_dcs_multiframe = r_dcs;
