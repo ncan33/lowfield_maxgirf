@@ -1,4 +1,4 @@
-function [im_maxgirf_multislice, header, r_dcs_multislice, output] = RTHawk_maxgirf_cg_recon_single_gpu(data_path, B0map_nlinv, user_opts)
+function [im_maxgirf_multiframe, header, r_dcs_multiframe] = RTHawk_maxgirf_cg_recon_single_gpu(data_path, B0map_nlinv, user_opts)
 % Written by Nejat Can
 % Email: ncan@usc.edu
 % Started 08/22/2023
@@ -233,14 +233,137 @@ img_maxgirf = complex(zeros(N1, N2, Nf, 'double'));
 r_dcs = zeros(N, 3, Nf, 'double');
 fc1 = zeros(N1, N2, Nf, 'double');
 
-%for s = 1:Nf
+for s = 1:Nf
+    %% Get a slice offset in the PCS [m]
+    if strcmp(image_ori, 'coronal')
+        pcs_offset = [TranslationX; TranslationY + SliceThickness * (s - 1); TranslationZ] * 1e-3; % [mm] * [m/1e3mm] => [m]
+    elseif strcmp(image_ori, 'transversal')
+        pcs_offset = [TranslationX; TranslationY; TranslationZ + SliceThickness * (s - 1)] * 1e-3; % [mm] * [m/1e3mm] => [m]
+    elseif strcmp(image_ori, 'sagittal')
+        pcs_offset = [TranslationX - SliceThickness * (s - 1); TranslationY; TranslationZ] * 1e-3; % [mm] * [m/1e3mm] => [m]
+    end
+
+    %% Calculate a slice offset in the DCS [m]
+    dcs_offset = R_pcs2dcs * pcs_offset; % 3 x 1
+
+    %% Calculate spatial coordinates in the DCS [m]
+    %----------------------------------------------------------------------
+    % Calculate spatial coordinates in the RCS [m]
+    %----------------------------------------------------------------------
+    [I1,I2,I3] = ndgrid((1:N1).', (1:N2).', (1:N3).');
+    r_rcs = (scaling_matrix * cat(2, I1(:) - (floor(N1/2) + 1), I2(:) - (floor(N2/2) + 1), I3(:) - (floor(N3/2) + 1)).').'; % N x 3
+
+    %----------------------------------------------------------------------
+    % Calculate spatial coordinates in the DCS [m]
+    %----------------------------------------------------------------------
+    r_dcs(:,:,s) = (repmat(dcs_offset, [1 N]) + R_rcs2dcs * r_rcs.').'; % N x 3
+
+    %% Calculate concomitant field basis functions (N x Nl) [m], [m^2], [m^3]
+    tstart = tic; fprintf('Calculating concomitant field basis functions... ');
+    p = calculate_concomitant_field_basis(r_dcs(:,1,s), r_dcs(:,2,s), r_dcs(:,3,s), Nl);
+
+    %% Perform NUFFT reconstruction
+    cimg_nufft = complex(zeros(N1, N2, Nc, 'double'));
+    for c = 1:Nc
+        tstart = tic; fprintf('(%2d/%2d) NUFFT reconstruction (c=%2d/%2d)... ', s, Nf, c, Nc);
+        cimg_nufft(:,:,c) = nufft_adj(reshape(double(kspace(:,:,c,s)) .* double(dcf), [Nk*Ni 1]), nufft_st) / sqrt(prod(Nd));
+        fprintf('done! (%6.4f sec)\n', toc(tstart));
+    end
+
+    %% Estimate coil sensitivity maps
+    tstart = tic; fprintf('(%2d/%2d) Estimating coil sensitivity maps with Walsh method... ', s, Nf);
+    %----------------------------------------------------------------------
+    % IFFT to k-space (k-space <=> image-space)
+    %----------------------------------------------------------------------
+    kgrid = ifft2c(cimg_nufft);
+
+    %----------------------------------------------------------------------
+    % Calculate the calibration region of k-space
+    %----------------------------------------------------------------------
+    cal_shape = [32 32];
+    cal_data = crop(kgrid, [cal_shape Nc]);
+    cal_data = bsxfun(@times, cal_data, hamming(cal_shape(1)) * hamming(cal_shape(2)).');
+
+    %----------------------------------------------------------------------
+    % Calculate coil sensitivity maps
+    %----------------------------------------------------------------------
+    cal_im = fft2c(zpad(cal_data, [N1 N2 Nc]));
+    csm = ismrm_estimate_csm_walsh(cal_im);
+
+    %% Perform optimal coil combination
+    img_nufft(:,:,s) = sum(cimg_nufft .* conj(csm), 3);
+
+    %% Calculate the SVD of a higher-order encoding matrix (Nk x N)
+    start_time_svd = tic;
+    U = complex(zeros(Nk, Lmax, Na, 'double'));
+    V = complex(zeros(N, Lmax, Na, 'double'));
+    S = zeros(Lmax, Na, 'double');
+    for i = 1:Na
+        tstart = tic; fprintf('(%2d/%2d) Calculating randomized SVD (i=%2d/%2d)... ', s, Nf, i, Na);
+        [U_,S_,V_] = calculate_rsvd_higher_order_encoding_matrix(k(:,4:end,i), p(:,4:end), Lmax, os, zeros(N,1), t, 0);
+        U(:,:,i) = U_(:,1:Lmax); % C: Nk x (Lmax + os) => Nk x Lmax
+        V(:,:,i) = V_(:,1:Lmax) * S_(1:Lmax,1:Lmax).'; % B: N x (Lmax + os) => N x Lmax
+        S(:,i) = diag(S_(1:Lmax,1:Lmax));
+    end
+    computation_time_svd = toc(start_time_svd);
     
+    %% Transfer arrays from the CPU to the GPU
+    U_device = gpuArray(U);
+    V_device = gpuArray(V);
+    csm_device = gpuArray(csm);
     
+    %% Calculate time-averaged concomitant fields [Hz]
+    fc1(:,:,s) = flip(reshape(k(end,4:end,1) * p(:,4:end).', [N1 N2]) / (2 * pi * T), 1);
+
+    %% Perform CP-based MaxGIRF reconstruction (conjugate phase reconstruction)
+    start_time_cpr = tic;
+    b_device = complex(zeros(N, 1, 'double', 'gpuArray'));
+    for i = 1:Ni
+        tstart = tic; fprintf('(%2d/%2d): Performing CP-based MaxGIRF reconstruction (i=%2d/%2d)... ', s, Nf, i, Ni);
+
+        for c = 1:Nc
+            %--------------------------------------------------------------
+            % Caclulate d_{i,c} (Nk x 1)
+            %--------------------------------------------------------------
+            d_device = gpuArray(kspace(:,i,c,s)); % kspace: Nk x Ni x Nc x Nf
+
+            %--------------------------------------------------------------
+            % Calculate sum_{ell=1}^L diag(V(ell,i)) * Fi^H * diag(conj(U(ell,i)))
+            %--------------------------------------------------------------
+            AHd_device = complex(zeros(N, 1, 'double', 'gpuArray'));
+            scale_factor = 1 / sqrt(prod(st{i}.Nd));
+            for ell = 1:L
+                % Preconditioning with density compensation
+                FHDuHd_device = nufft_adj_gpu((conj(U_device(:,ell,i)) .* d_device) .* dcf_device(:,i), st_device{i}) * scale_factor;
+                AHd_device = AHd_device + V_device(:,ell,i) .* reshape(FHDuHd_device, [N 1]);
+            end
+
+            %--------------------------------------------------------------
+            % Calculate Sc^H * Ei^H * d_{i,c} (N x 1)
+            %--------------------------------------------------------------
+            AHd_device = reshape(conj(csm_device(:,:,c)), [N 1]) .* AHd_device;
+
+            %--------------------------------------------------------------
+            % Calculate b (N x 1)
+            %--------------------------------------------------------------
+            b_device = b_device + AHd_device;
+        end
+    end
+    computation_time_cpr = toc(start_time_cpr);
+
+    %% Perform CG-based MaxGIRF reconstruction
+    start_time_maxgirf = tic; fprintf('(%2d/%2d): Performing CG-based MaxGIRF reconstruction...\n', s, Nf);
+    E = @(x,tr) encoding_lowrank_maxgirf_single_gpu(x, csm_device, U_device(:,1:L,:), V_device(:,1:L,:), dcf_device, st_device, tr);
+    [m_maxgirf_device, flag, relres, iter, resvec] = lsqr(E, b_device, tol, maxiter, [], [], []); % N x 1
+    im_maxgirf_device = reshape(m_maxgirf_device, [N1 N2]);
+    computation_time_maxgirf = toc(start_time_maxgirf);
+    img_maxgirf(:,:,s) = gather(im_maxgirf_device);
+end
     
+end
     
-im_maxgirf_multislice = NaN;
-header = NaN;
-r_dcs_multislice = NaN;
-output = NaN;
+im_maxgirf_multiframe = NaN;
+header = kspace_info;
+r_dcs_multiframe = r_dcs;
 
 end
