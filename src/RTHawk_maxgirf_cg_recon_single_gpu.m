@@ -229,7 +229,7 @@ dcf_device = gpuArray(dcf);
 
 %% Perform reconstruction per slice
 img_nufft   = complex(zeros(N1, N2, Nf, 'double'));
-img_maxgirf = complex(zeros(N1, N2, Ns, 'double'));
+img_maxgirf = complex(zeros(N1, N2, Nf, 'double'));
 r_dcs = zeros(N, 3, Nf, 'double');
 fc1 = zeros(N1, N2, Nf, 'double');
 
