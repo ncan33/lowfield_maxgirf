@@ -163,7 +163,7 @@ end
 %% Calculate the time courses of phase coefficients (Nk x Nl x Ni) [rad/m], [rad/m^2], [rad/m^3]
 tstart = tic; fprintf('Calculating the time courses of phase coefficients... ');
 k = calculate_concomitant_field_coefficients(reshape(g_dcs(:,1,:), [Nk Ni]), reshape(g_dcs(:,2,:), [Nk Ni]), reshape(g_dcs(:,3,:), [Nk Ni]), Nl, B0, gamma, dt);
-fprintf('done! (%6.4f/%6.4f sec)\n', toc(tstart), toc(start_time));
+whos k
 
 %% Calculate a time vector [sec]
 t = TE + (0:Nk-1).' * dt; % Nk x 1 [sec]
