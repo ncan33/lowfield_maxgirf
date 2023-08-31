@@ -163,11 +163,81 @@ end
 %% Calculate the time courses of phase coefficients (Nk x Nl x Ni) [rad/m], [rad/m^2], [rad/m^3]
 tstart = tic; fprintf('Calculating the time courses of phase coefficients... ');
 k = calculate_concomitant_field_coefficients(reshape(g_dcs(:,1,:), [Nk Ni]), reshape(g_dcs(:,2,:), [Nk Ni]), reshape(g_dcs(:,3,:), [Nk Ni]), Nl, B0, gamma, dt);
-whos k
 
 %% Calculate a time vector [sec]
 t = TE + (0:Nk-1).' * dt; % Nk x 1 [sec]
 
+%% Initialize an NUFFT structure for all interleaves (NUFFT reconstruction)
+tstart = tic; fprintf('Initializing structure for NUFFT for all interleaves... ');
+% scaled to [-0.5,0.5] and then [-pi,pi]
+om = cat(2, reshape(k_rcs(:,1,:), [Nk*Ni 1]), reshape(k_rcs(:,2,:), [Nk*Ni 1])) / (2 * krmax) * (2 * pi); % Nk*Ni x 2
+Nd = [N1 N2]; % matrix size
+Jd = [6 6];   % kernel size
+Kd = Nd * 2;  % oversampled matrix size
+nufft_st = nufft_init(om, Nd, Jd, Kd, Nd/2, 'minmax:kb');
+
+%% Initialize an NUFFT structure per interleaf (MaxGIRF reconstruction)
+st = cell(Na,1);
+for i = 1:Na
+    tstart = tic; fprintf('(%2d/%2d): Initializing structure for NUFFT per interleaf... ', i, Na);
+    % scaled to [-0.5,0.5] and then [-pi,pi]
+    om = cat(2, k_rcs(:,1,i), k_rcs(:,2,i)) / (2 * krmax) * (2 * pi); % Nk x 2
+    Nd = [N1 N2];   % matrix size
+    Jd = [6 6];     % kernel size
+    Kd = Nd * 2;    % oversampled matrix size
+    st{i} = nufft_init(om, Nd, Jd, Kd, Nd/2, 'minmax:kb');
+end
+
+%% Calculate a density compensation function (Nk x Ni)
+tstart = tic; fprintf('Calculating a density compensation function using sdc3_MAT.c... ');
+% [rad/m] / [rad/m] => => [-0.5 0.5]
+coords  = permute(k_rcs, [2 1 3]) / (2 * krmax); % Nk x 3 x Ni => 3 x Nk x Ni
+numIter = 25; % number of iterations
+effMtx  = N1; % the length of one side of the grid matrix
+verbose = 0;  % 1:verbose 0:quiet
+osf     = 2;  % the grid oversample factor
+DCF = sdc3_MAT(coords, numIter, effMtx, verbose, osf);
+dcf = DCF / max(DCF(:));
+
+%% Transfer arrays from the CPU to the GPU
+%--------------------------------------------------------------------------
+% Count only GPU devices that are supported and are currently available
+%--------------------------------------------------------------------------
+[~,idx] = gpuDeviceCount("available");
+gpuDevice(idx(1));
+
+%--------------------------------------------------------------------------
+% Transfer arrays from the CPU to the GPU 
+%--------------------------------------------------------------------------
+st_device = cell(Ni,1);
+for i = 1:Ni
+    st_device{i}.n_shift = st{i}.n_shift;
+    st_device{i}.alpha   = {gpuArray(st{i}.alpha{1}), gpuArray(st{i}.alpha{2})};
+    st_device{i}.beta    = {gpuArray(st{i}.beta{1}), gpuArray(st{i}.beta{2})};
+    st_device{i}.ktype   = st{i}.ktype;
+    st_device{i}.tol     = st{i}.tol;
+    st_device{i}.Jd      = st{i}.Jd;
+    st_device{i}.Nd      = st{i}.Nd;
+    st_device{i}.Kd      = st{i}.Kd;
+    st_device{i}.M       = st{i}.M;
+    st_device{i}.om      = gpuArray(st{i}.om);
+    st_device{i}.sn      = gpuArray(st{i}.sn);
+    st_device{i}.p       = gpuArray(st{i}.p);
+end
+
+dcf_device = gpuArray(dcf);
+
+%% Perform reconstruction per slice
+img_nufft   = complex(zeros(N1, N2, Nf, 'double'));
+img_maxgirf = complex(zeros(N1, N2, Ns, 'double'));
+r_dcs = zeros(N, 3, Nf, 'double');
+fc1 = zeros(N1, N2, Nf, 'double');
+
+%for s = 1:Nf
+    
+    
+    
+    
 im_maxgirf_multislice = NaN;
 header = NaN;
 r_dcs_multislice = NaN;
