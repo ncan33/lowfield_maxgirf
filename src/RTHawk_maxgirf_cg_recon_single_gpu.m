@@ -1,4 +1,4 @@
-function [im_maxgirf_multislice, header, r_dcs_multislice, output] = RTHawk_maxgirf_cg_recon_single_gpu(data_path, user_opts)
+function [im_maxgirf_multislice, header, r_dcs_multislice, output] = RTHawk_maxgirf_cg_recon_single_gpu(data_path, B0map_nlinv, user_opts)
 % Written by Nejat Can
 % Email: ncan@usc.edu
 % Started 08/22/2023
