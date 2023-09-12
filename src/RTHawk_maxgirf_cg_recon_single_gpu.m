@@ -71,9 +71,15 @@ dt = T / Nk;                              % dwell time [sec]
 clear kspace_echo_2 kx_echo_2 ky_echo_2 % single echo for now
 
 %--------------------------------------------------------------------------
+% Trim frames
+%--------------------------------------------------------------------------
+kspace_echo_1 = kspace_echo_1(:,:,1:5,:);
+
+%--------------------------------------------------------------------------
 % Declare Nf parameter
 %--------------------------------------------------------------------------
-Nf = nframes; % Number of frames in dynamic data
+Nf = 5;
+%Nf = nframes; % Number of frames in dynamic data
 
 %--------------------------------------------------------------------------
 % Permute to achieve (Nk x Na x Nc x Nf)
